@@ -9,13 +9,13 @@ export default function PublicationCard({ item }) {
   const [storyImage, setStoryImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // API URLs
+  
   const SUMMARY_API_URL =
     import.meta.env.VITE_SUMMARY_API_URL || "http://localhost:5000/api/summarize";
   const STORY_API_URL =
     import.meta.env.VITE_STORY_API_URL || "http://localhost:5000/api/story";
 
-  // --- Generate Summary ---
+  
   const handleGenerateSummary = async () => {
     setLoading(true);
     setSummary(null);
@@ -44,7 +44,7 @@ export default function PublicationCard({ item }) {
     }
   };
 
-  // --- Generate Story ---
+  
   const handleGenerateStory = async () => {
     setLoading(true);
     setStory(null);
@@ -55,8 +55,8 @@ export default function PublicationCard({ item }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           link: item.link,
-          genre: "Research", // default genre
-          image: true,       // request image too
+          genre: "Research", 
+          image: true,       
         }),
       });
 
