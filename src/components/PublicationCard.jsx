@@ -5,17 +5,22 @@ import SummaryModal from "./SummaryModal.jsx";
 export default function PublicationCard({ item }) {
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [story, setStory] = useState(null);
+  const [storyImage, setStoryImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Use env override if provided, otherwise default to localhost dev URL
-  const API_URL =
+  
+  const SUMMARY_API_URL =
     import.meta.env.VITE_SUMMARY_API_URL || "http://localhost:5000/api/summarize";
+  const STORY_API_URL =
+    import.meta.env.VITE_STORY_API_URL || "http://localhost:5000/api/story";
 
-  const handleGenerate = async () => {
+  
+  const handleGenerateSummary = async () => {
     setLoading(true);
     setSummary(null);
     try {
-      const resp = await fetch(API_URL, {
+      const resp = await fetch(SUMMARY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -24,7 +29,6 @@ export default function PublicationCard({ item }) {
         }),
       });
 
-      // Non-2xx -> read error body (if any) and throw for catch()
       if (!resp.ok) {
         const errJson = await resp.json().catch(() => ({}));
         throw new Error(errJson.error || `HTTP ${resp.status}`);
@@ -35,6 +39,40 @@ export default function PublicationCard({ item }) {
     } catch (err) {
       console.error("Summarization failed:", err);
       setSummary(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+  const handleGenerateStory = async () => {
+    setLoading(true);
+    setStory(null);
+    setStoryImage(null);
+    try {
+      const resp = await fetch(STORY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          link: item.link,
+          genre: "Research", 
+          image: true,       
+        }),
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setStory(data.story || "No story returned.");
+      if (data.image) {
+        setStoryImage(`data:image/png;base64,${data.image}`);
+      }
+    } catch (err) {
+      console.error("Story generation failed:", err);
+      setStory(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -82,22 +120,28 @@ export default function PublicationCard({ item }) {
               View Paper
             </a>
           )}
+
+          {/* Open modal button */}
           <button
             onClick={() => setOpen(true)}
             className="text-xs px-2 py-1 rounded bg-sky-600/30 border border-sky-600/50 text-sky-300 hover:bg-sky-600/50 transition"
           >
-            Show Summary
+            Show Summary / Story
           </button>
         </div>
       </div>
 
+      {/* Modal for summary + story */}
       <SummaryModal
         open={open}
         onClose={() => setOpen(false)}
         title={item.title}
-        summary={summary}
         link={item.link}
-        onGenerate={handleGenerate}
+        summary={summary}
+        story={story}
+        storyImage={storyImage}
+        onGenerateSummary={handleGenerateSummary}
+        onGenerateStory={handleGenerateStory}
         loading={loading}
       />
     </>

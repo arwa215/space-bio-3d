@@ -1,58 +1,149 @@
-// src/components/SummaryModal.jsx
-import React from "react";
+// src/components/PublicationCard.jsx
+import React, { useState } from "react";
+import SummaryModal from "./SummaryModal.jsx";
 
-export default function SummaryModal({ open, onClose, title, summary, link, onGenerate, loading }) {
-  if (!open) return null;
+export default function PublicationCard({ item }) {
+  const [open, setOpen] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [story, setStory] = useState(null);
+  const [storyImage, setStoryImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  
+  const SUMMARY_API_URL =
+    import.meta.env.VITE_SUMMARY_API_URL || "http://localhost:5000/api/summarize";
+  const STORY_API_URL =
+    import.meta.env.VITE_STORY_API_URL || "http://localhost:5000/api/story";
+
+  
+  const handleGenerateSummary = async () => {
+    setLoading(true);
+    setSummary(null);
+    try {
+      const resp = await fetch(SUMMARY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item.title,
+          link: item.link,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setSummary(data.summary || "No summary returned.");
+    } catch (err) {
+      console.error("Summarization failed:", err);
+      setSummary(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+  const handleGenerateStory = async () => {
+    setLoading(true);
+    setStory(null);
+    setStoryImage(null);
+    try {
+      const resp = await fetch(STORY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          link: item.link,
+          genre: "Research", 
+          image: true,       
+        }),
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setStory(data.story || "No story returned.");
+      if (data.image) {
+        setStoryImage(`data:image/png;base64,${data.image}`);
+      }
+    } catch (err) {
+      console.error("Story generation failed:", err);
+      setStory(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0b1220] text-slate-100 rounded-2xl w-full max-w-xl p-6 shadow-lg">
-        <header className="flex justify-between items-start">
-          <div className="pr-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <div className="text-xs text-slate-400 mt-1">Summary</div>
-          </div>
-          <div className="flex items-center gap-2">
+    <>
+      <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 hover:border-slate-500/60 transition">
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-slate-100 font-semibold">{item.title}</h4>
+          {item.year && (
+            <span className="text-xs px-2 py-1 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              {item.year}
+            </span>
+          )}
+        </div>
+
+        {item.journal && <p className="text-slate-300 text-sm mt-1 italic">{item.journal}</p>}
+        {item.authors && <p className="text-slate-400 text-xs mt-1">{item.authors}</p>}
+        {item.abstract && (
+          <p className="text-slate-300 text-sm mt-2 line-clamp-3">{item.abstract}</p>
+        )}
+
+        <div className="text-slate-400 text-xs mt-3 flex flex-wrap gap-2">
+          {item.organism && (
+            <span className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700">
+              Organism: {item.organism}
+            </span>
+          )}
+          {item.outcome && (
+            <span className="px-2 py-1 rounded bg-slate-900/60 border border-slate-700">
+              Outcome: {item.outcome}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 mt-4">
+          {item.link && (
             <a
-              href={link}
+              className="text-sky-400 hover:underline text-sm"
+              href={item.link}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-sky-300 hover:underline"
             >
-              Open paper
+              View Paper
             </a>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
-              ✕
-            </button>
-          </div>
-        </header>
-
-        <section className="mt-4 min-h-[80px]">
-          {loading ? (
-            <div className="text-sm text-slate-300">Generating summary…</div>
-          ) : summary ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary}</p>
-          ) : (
-            <div className="text-sm text-slate-400">
-              <p>No summary yet.</p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={onGenerate}
-                  className="px-3 py-1 bg-sky-600 text-white rounded text-sm"
-                >
-                  Generate Summary
-                </button>
-              </div>
-            </div>
           )}
-        </section>
 
-        <footer className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-3 py-1 border border-slate-700 rounded text-sm text-slate-200">
-            Close
+          {/* Open modal button */}
+          <button
+            onClick={() => setOpen(true)}
+            className="text-xs px-2 py-1 rounded bg-sky-600/30 border border-sky-600/50 text-sky-300 hover:bg-sky-600/50 transition"
+          >
+            Show Summary / Story
           </button>
-        </footer>
+        </div>
       </div>
-    </div>
+
+      {/* Modal for summary + story */}
+      <SummaryModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={item.title}
+        link={item.link}
+        summary={summary}
+        story={story}
+        storyImage={storyImage}
+        onGenerateSummary={handleGenerateSummary}
+        onGenerateStory={handleGenerateStory}
+        loading={loading}
+      />
+    </>
   );
 }
